@@ -1,0 +1,26 @@
+
+{
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "github-token",
+      "description": "GitHub token with read-only repository access",
+      "password": true
+    }
+  ],
+  "servers": {
+    "repo-intelligence": {
+      "type": "stdio",
+      "command": "${workspaceFolder}\\.venv\\Scripts\\python.exe",
+      "args": [
+        "-m",
+        "repo_intelligence.server"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}\\src",
+        "GITHUB_TOKEN": "${input:github-token}"
+      }
+    }
+  }
+}
