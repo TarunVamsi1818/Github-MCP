@@ -4,6 +4,9 @@ from typing import Any
 from mcp.server.fastmcp import FastMCP
 
 from repo_intelligence.github_client import GitHubClient
+from repo_intelligence.services.investigation_service import (
+    build_issue_investigation,
+)
 
 mcp = FastMCP("Repo Intelligence MCP")
 
@@ -66,12 +69,34 @@ async def list_recent_repository_commits(
     return await _execute("list_commits", owner, repo, limit)
 
 
+@mcp.tool()
+async def investigate_repository_issue(
+    owner: str,
+    repo: str,
+    issue_number: int,
+) -> dict:
+    """Build an evidence bundle for investigating a GitHub issue.
+
+    Collects the issue, related issue candidates, recent pull requests,
+    and recent commits. Returns partial results if supporting lookups fail.
+    Does not claim to establish root cause or modify repository contents.
+    """
+    client = GitHubClient()
+    try:
+        return await build_issue_investigation(
+            client, owner, repo, issue_number
+        )
+    finally:
+        await client.close()
+
+
 @mcp.resource("repo-intelligence://capabilities")
 def capabilities() -> str:
     """Describe the capabilities and limitations of this MCP server."""
     return (
         "Repo Intelligence MCP provides read-only GitHub issue search, "
-        "issue details, pull request listing, and recent commit listing. "
+        "issue details, issue investigation evidence bundles, pull request "
+        "listing, and recent commit listing. "
         "It does not prove root cause, edit source code, or merge PRs. "
         "Use returned URLs as evidence and distinguish facts from hypotheses."
     )
@@ -83,14 +108,13 @@ def investigate_issue(owner: str, repo: str, issue_number: int) -> str:
     return f"""
 Investigate issue #{issue_number} in {owner}/{repo}.
 
-1. Retrieve the issue using get_repository_issue.
-2. Search for similar issues using search_repository_issues.
-3. Inspect relevant pull requests and recent commits when useful.
-4. Separate verified facts from hypotheses.
-5. Link every repository claim to a source URL.
-6. If code evidence is unavailable, explicitly say so.
-7. Recommend a minimal fix and regression test plan.
-8. Do not claim to have tested a fix unless tests were actually run.
+1. Start with investigate_repository_issue for the evidence bundle.
+2. Treat related issues as search candidates, not confirmed duplicates.
+3. Treat recent pull requests and commits as potentially relevant, not proven fixes.
+4. Separate verified facts from hypotheses, and link repository claims to source URLs.
+5. If code evidence is unavailable, explicitly say so.
+6. Recommend a minimal debugging approach and regression test plan.
+7. Do not claim to have tested a fix unless tests were actually run.
 """
 
 

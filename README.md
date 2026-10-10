@@ -12,6 +12,8 @@ their original records.
 - Retrieve an issue by number.
 - List pull requests by state (`open`, `closed`, or `all`).
 - List recent commits with commit messages, authors, dates, and links.
+- Build an evidence bundle for an issue with related-issue candidates, recent
+  pull requests, and recent commits.
 - Expose a capabilities resource and an `investigate_issue` prompt for evidence-driven workflows.
 
 The server does not change repositories, merge pull requests, or determine root cause. Treat
@@ -69,6 +71,7 @@ excluded from Git.
 | `get_repository_issue(owner, repo, issue_number)` | Retrieve a regular issue by number |
 | `list_repository_pull_requests(owner, repo, state="all", limit=10)` | List pull requests and their branches and head SHAs |
 | `list_recent_repository_commits(owner, repo, limit=10)` | List recent commits and their source URLs |
+| `investigate_repository_issue(owner, repo, issue_number)` | Retrieve an issue and gather related issue candidates, recent pull requests, and recent commits |
 
 For example, search open issues mentioning SHA256 with:
 
@@ -82,6 +85,21 @@ limit = 10
 The `limit` is constrained by `MAX_SEARCH_RESULTS`. Search results come from the first GitHub
 Search API page; the server does not automatically paginate through all matches. The issue-detail
 tool returns issue details and a comments URL, but does not fetch comments.
+
+### Issue investigation evidence bundle
+
+`investigate_repository_issue` retrieves the specified regular issue, searches for up to five
+related issue candidates using distinctive words from its title, and lists up to five repository
+pull requests and five recent commits. Related issues are search candidates, not confirmed
+duplicates or causal explanations. Pull requests and commits are recent repository-wide results;
+they are not guaranteed to be associated with the issue.
+
+The result has a `status` of `complete`, `partial`, or `failed`. If the target issue cannot be
+retrieved, the result is `failed`; if a supporting lookup fails after the issue is retrieved, the
+result is `partial` and includes per-step errors. Successful reports set
+`conclusions.verified_root_cause` to `null` and list evidence limitations. The tool does not
+inspect source code or run tests, and a matching title or commit message is not proof that a
+change fixed the issue.
 
 The `repo-intelligence://capabilities` resource describes the server's scope. The
 `investigate_issue` prompt provides a reusable checklist for researching an issue while separating
