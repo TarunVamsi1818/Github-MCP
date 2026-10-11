@@ -47,7 +47,7 @@ jobs:
           test_status=${PIPESTATUS[0]}
           echo "exit_code=$test_status" >> "$GITHUB_OUTPUT"
           exit 0
-          
+
       - name: Run Bandit
         id: bandit
         continue-on-error: true
@@ -60,6 +60,16 @@ jobs:
         continue-on-error: true
         run: |
           pip-audit -f json -o artifacts/pip-audit.json
+
+        
+      - name: Display dependency audit findings
+        if: always()
+        run: |
+          if [ -f artifacts/pip-audit.json ]; then
+            python -m json.tool artifacts/pip-audit.json
+          else
+            echo "pip-audit report was not generated"
+          fi
 
       - name: Upload CI reports
         if: always()
